@@ -136,13 +136,13 @@ public class BlockingCell<T> {
      * Store a value in this BlockingCell, throwing {@link IllegalStateException} if the cell already has a value.
      * @param newValue the new value to store
      */
-    public synchronized void set(T newValue) {
+    public synchronized void set(T newValue) {      // 对象锁
         if (_filled) {
             throw new IllegalStateException("BlockingCell can only be set once");
         }
-        _value = newValue;
+        _value = newValue;                          // _value = {AMQCommand@1325} "{#method<connection.start>(version-major=0, version-minor=9, ..."
         _filled = true;
-        notifyAll();
+        notifyAll();                                // 唤醒：阻塞在 BlockingCell.get(...) 读取的线程
     }
 
     /**
