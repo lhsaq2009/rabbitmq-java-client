@@ -974,7 +974,8 @@ public class ConnectionFactory implements Cloneable {
             }
             return this.frameHandlerFactory;
         } else {
-            return new SocketFrameHandlerFactory(connectionTimeout, socketFactory, socketConf, isSSL(), this.shutdownExecutor, sslContextFactory);
+            return new SocketFrameHandlerFactory(   // =>> SocketFrameHandlerFactory(..)
+                    connectionTimeout, socketFactory, socketConf, isSSL(), this.shutdownExecutor, sslContextFactory);
         }
 
     }
@@ -1170,7 +1171,8 @@ public class ConnectionFactory implements Cloneable {
      */
     public Connection newConnection(ExecutorService executor, List<Address> addrs, String clientProvidedName)
             throws IOException, TimeoutException {
-        return newConnection(executor, createAddressResolver(addrs), clientProvidedName);
+        // executor = null, clientProvidedName = null
+        return newConnection(executor, createAddressResolver(addrs), clientProvidedName);       // =>> newConnection
     }
 
     /**
