@@ -1200,6 +1200,14 @@ public class ConnectionFactory implements Cloneable {
             this.metricsCollector = new NoOpMetricsCollector();
         }
         // make sure we respect the provided thread factory
+        /*
+         *              FrameHandlerFactory
+         *                        ▲
+         *      AbstractFrameHandlerFactory
+         *                        ▲
+         *        SocketFrameHandlerFactory
+         * SocketChannelFrameHandlerFactory  ─▶ factory.useNio();
+         */
         FrameHandlerFactory fhFactory = createFrameHandlerFactory();        // =>> new SocketFrameHandlerFactory(..)
         ConnectionParams params = params(executor);                         // ConnectionParams
         // set client-provided via a client property
@@ -1209,13 +1217,19 @@ public class ConnectionFactory implements Cloneable {
             params.setClientProperties(properties);
         }
 
-        if (isAutomaticRecoveryEnabled()) {
+        /*
+         * 当 RabbitMQ 连接丢失时，客户端将自动尝试重新连接。在重新连接成功后，它将恢复先前的会话状态，例如队列、交换机和绑定等
+         * 这意味着，当客户端重新连接到RabbitMQ时，不需要手动重建其先前设置的状态。
+         * 自动恢复功能对于确保可靠的消息传递非常重要，避免了数据丢失和服务中断的风险
+         */
+
+        if (isAutomaticRecoveryEnabled()) {      // 默认启用，自动恢复，在连接失败或其他故障情况下，自动重新连接和恢复与代理的通信
             // see com.rabbitmq.client.impl.recovery.RecoveryAwareAMQConnectionFactory#newConnection
             // No Sonar: no need to close this resource because we're the one that creates it
             // and hands it over to the user
             AutorecoveringConnection conn = new AutorecoveringConnection(params, fhFactory, addressResolver, metricsCollector); //NOSONAR
 
-            conn.init();
+            conn.init();        // =>> 开始
             return conn;
         } else {
             List<Address> addrs = addressResolver.getAddresses();
@@ -1250,7 +1264,7 @@ public class ConnectionFactory implements Cloneable {
         ConnectionParams result = new ConnectionParams();
 
         result.setCredentialsProvider(credentialsProvider);
-        result.setConsumerWorkServiceExecutor(consumerWorkServiceExecutor);
+        result.setConsumerWorkServiceExecutor(consumerWorkServiceExecutor);     // 支持 factory.newConnection(executor, addrs, "HaisenRMQ");
         result.setVirtualHost(virtualHost);
         result.setClientProperties(getClientProperties());
         result.setRequestedFrameMax(requestedFrameMax);
