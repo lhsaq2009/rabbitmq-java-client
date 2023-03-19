@@ -60,10 +60,19 @@ public class RecoveryAwareAMQConnectionFactory {
 
         for (Address addr : shuffled) {
             try {
-                FrameHandler frameHandler = factory.create(addr, connectionName());
-                RecoveryAwareAMQConnection conn = createConnection(params, frameHandler, metricsCollector);
-                conn.start();
-                metricsCollector.newConnection(conn);
+
+                /*
+                 *      factory = {SocketFrameHandlerFactory@1207}
+                 *
+                 * frameHandler = {SocketFrameHandler@1451}
+                 *      _socket = {Socket@1277} "Socket[addr=/127.0.0.1,port=3372,localport=52302]"     -- JDK Socket 对象，已经三次握手完毕
+                 *      _inputStream = {DataInputStream@1454}
+                 *      _outputStream = {DataOutputStream@1455}
+                 */
+                FrameHandler frameHandler = factory.create(addr, connectionName());     // !automaticRecovery 已分析过
+                RecoveryAwareAMQConnection conn = createConnection(params, frameHandler, metricsCollector);  // new RecoveryAwareAMQConnection(..)
+                conn.start();                                                           // =>> Core，内容很多
+                metricsCollector.newConnection(conn);                                   // 空
                 return conn;
             } catch (IOException e) {
                 lastException = e;
