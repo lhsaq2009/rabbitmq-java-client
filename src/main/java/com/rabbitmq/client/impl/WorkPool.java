@@ -99,6 +99,13 @@ public class WorkPool<K, W> {
             if (!this.pool.containsKey(key)) {
                 int initialCapacity = unlimited.isEmpty() ? MAX_QUEUE_LENGTH : Integer.MAX_VALUE;
                 this.pool.put(key, new VariableLinkedBlockingQueue<W>(initialCapacity));
+
+                /*
+                 * this.pool = {HashMap@1841}  size = 1
+                 *      {RecoveryAwareChannelN@1778} "AMQChannel(amqp://admin@127.0.0.1:3372/,1)" -> {VariableLinkedBlockingQueue@1863}  size = 0
+                 *          key   = {RecoveryAwareChannelN@1778} "AMQChannel(amqp://admin@127.0.0.1:3372/,1)"
+                 *          value = {VariableLinkedBlockingQueue@1863}  size = 0
+                 */
             }
         }
     }
@@ -120,7 +127,7 @@ public class WorkPool<K, W> {
     private void setCapacities(int capacity) {
         Iterator<VariableLinkedBlockingQueue<W>> it = pool.values().iterator();
         while (it.hasNext()) {
-            it.next().setCapacity(capacity);
+            it.next().setCapacity(capacity);        //
         }
     }
 
@@ -250,6 +257,7 @@ public class WorkPool<K, W> {
     private boolean isInProgress(K key){ return this.inProgress.contains(key); }
     private boolean isReady(K key){ return this.ready.contains(key); }
     private boolean isRegistered(K key) { return this.pool.containsKey(key); }
+    // 判断当前工作池是否处于空闲状态
     private boolean isDormant(K key){ return !isInProgress(key) && !isReady(key) && isRegistered(key); }
 
     /* State transition methods - all assume key registered */
