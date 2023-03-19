@@ -44,7 +44,7 @@ public class AutorecoveringChannel implements RecoverableChannel {
     private final List<RecoveryListener> recoveryListeners = new CopyOnWriteArrayList<>();
     private final List<ReturnListener> returnListeners = new CopyOnWriteArrayList<>();
     private final List<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<>();
-    private final Set<String> consumerTags = Collections.synchronizedSet(new HashSet<>());
+    private final Set<String> consumerTags = Collections.synchronizedSet(new HashSet<>());      // // channel.basicConsume
     private int prefetchCountConsumer;
     private int prefetchCountGlobal;
     private boolean usesPublisherConfirms;
@@ -204,7 +204,7 @@ public class AutorecoveringChannel implements RecoverableChannel {
 
     @Override
     public void basicPublish(String exchange, String routingKey, AMQP.BasicProperties props, byte[] body) throws IOException {
-        delegate.basicPublish(exchange, routingKey, props, body);
+        delegate.basicPublish(exchange, routingKey, props, body);       // =>>
     }
 
     @Override
@@ -472,7 +472,7 @@ public class AutorecoveringChannel implements RecoverableChannel {
 
     @Override
     public String basicConsume(String queue, boolean autoAck, Consumer callback) throws IOException {
-        return basicConsume(queue, autoAck, "", callback);
+        return basicConsume(queue, autoAck, "", callback);      // =>>
     }
 
     @Override
@@ -494,7 +494,7 @@ public class AutorecoveringChannel implements RecoverableChannel {
 
     @Override
     public String basicConsume(String queue, boolean autoAck, String consumerTag, Consumer callback) throws IOException {
-        return basicConsume(queue, autoAck, consumerTag, false, false, null, callback);
+        return basicConsume(queue, autoAck, consumerTag, false, false, null, callback);     // =>>
     }
 
     @Override
@@ -540,8 +540,9 @@ public class AutorecoveringChannel implements RecoverableChannel {
 
     @Override
     public String basicConsume(String queue, boolean autoAck, String consumerTag, boolean noLocal, boolean exclusive, Map<String, Object> arguments, Consumer callback) throws IOException {
+        // amq.ctag-vwCBGiFuhlUMiK99g3P2MQ
         final String result = delegate.basicConsume(queue, autoAck, consumerTag, noLocal, exclusive, arguments, callback);
-        recordConsumer(result, queue, autoAck, exclusive, arguments, callback);
+        recordConsumer(result, queue, autoAck, exclusive, arguments, callback);     //
         return result;
     }
 
