@@ -48,10 +48,10 @@ public class ChannelManager {
     private final Set<CountDownLatch> shutdownSet = new HashSet<CountDownLatch>();
 
     /** Maximum channel number available on this connection. */
-    private final int _channelMax;
+    private final int _channelMax;                                                              //
     private ExecutorService shutdownExecutor;
     private final ThreadFactory threadFactory;
-
+    //
     private int channelShutdownTimeout = (int) ((ConnectionFactory.DEFAULT_HEARTBEAT * AMQConnection.CHANNEL_SHUTDOWN_TIMEOUT_MULTIPLIER) * 1000);
 
     protected final MetricsCollector metricsCollector;
@@ -178,7 +178,7 @@ public class ChannelManager {
             if (channelNumber == -1) {
                 return null;
             } else {
-                ch = addNewChannel(connection, channelNumber);
+                ch = addNewChannel(connection, channelNumber);      // =>> createChannel -> addNewChannel
             }
         }
         ch.open(); // now that it's been safely added
