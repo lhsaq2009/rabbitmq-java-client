@@ -60,7 +60,7 @@ public class BlockingCell<T> {
      * @return the waited-for value
      * @throws InterruptedException if this thread is interrupted
      */
-    public synchronized T get(long timeout) throws InterruptedException, TimeoutException {
+    public synchronized T get(long timeout) throws InterruptedException, TimeoutException {     //「当前实例」作为锁
         if (timeout == INFINITY) return get();
 
         if (timeout < 0) {
@@ -70,10 +70,10 @@ public class BlockingCell<T> {
         long now = System.nanoTime() / NANOS_IN_MILLI;
         long maxTime = now + timeout;
         while (!_filled && (now = (System.nanoTime() / NANOS_IN_MILLI)) < maxTime) {
-            wait(maxTime - now);
+            wait(maxTime - now);            /**「当前实例」作为锁，等待被唤醒：{@link com.rabbitmq.utility.BlockingCell#set} -> notifyAll(); */
         }
 
-        if (!_filled)
+        if (!_filled)                       /** {@link com.rabbitmq.utility.BlockingCell#set} -> _filled = true */
             throw new TimeoutException();
 
         return _value;
@@ -117,7 +117,7 @@ public class BlockingCell<T> {
         try {
             do {
                 try {
-                    return get(runTime - now);
+                    return get(runTime - now);      // =>>
                 } catch (InterruptedException e) {
                     // Ignore.
                     wasInterrupted = true;
