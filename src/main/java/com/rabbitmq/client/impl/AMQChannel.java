@@ -53,19 +53,25 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
      * so that clients can themselves use the channel to synchronize
      * on.
      */
-    protected final Object _channelMutex = new Object();
+    protected final Object _channelMutex = new Object();                // 操作信道的锁
 
     /** The connection this channel is associated with. */
-    private final AMQConnection _connection;
+    private final AMQConnection _connection;                            // _connection = {RecoveryAwareAMQConnection@1317} "amqp://admin@127.0.0.1:3372/"
 
     /** This channel's channel number. */
     private final int _channelNumber;
 
     /** Command being assembled */
-    private AMQCommand _command = new AMQCommand();
-
-    /** The current outstanding RPC request, if any. (Could become a queue in future.) */
-    private RpcWrapper _activeRpc = null;
+    private AMQCommand _command = new AMQCommand();                     // 正在组装的命令
+    /**
+     * 当前未完成的 RPC 请求
+     *
+     * 何时写入：{@link AMQChannel#enqueueRpc(RpcContinuation)}
+     * 消费位置：{@link com.rabbitmq.client.impl.AMQChannel#nextOutstandingRpc}
+     *
+     * The current outstanding RPC request, if any. (Could become a queue in future.)
+     */
+    private RpcWrapper _activeRpc = null;                               //
 
     /** Whether transmission of content-bearing methods should be blocked */
     protected volatile boolean _blockContent = false;
@@ -108,10 +114,10 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
      * @throws IOException if an error is encountered
      */
     public void handleFrame(Frame frame) throws IOException {
-        AMQCommand command = _command;
-        if (command.handleFrame(frame)) { // a complete command has rolled off the assembly line
-            _command = new AMQCommand(); // prepare for the next one
-            handleCompleteInboundCommand(command);
+        AMQCommand command = _command;                      // _command = {AMQCommand@1486} "{null, null, ""}"
+        if (command.handleFrame(frame)) {                   // 从报文字节流中解析，得到对应的封装命令描述对象，a complete command has rolled off the assembly line
+            _command = new AMQCommand();                    // prepare for the next one
+            handleCompleteInboundCommand(command);          // =>>
         }
     }
 
@@ -194,11 +200,21 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
                     }
                 }
             }
-            final RpcWrapper nextOutstandingRpc = nextOutstandingRpc();
+
+            /**
+             * _activeRpc 何时赋值的：
+             *      doEnqueueRpc(() -> new RpcContinuationRpcWrapper(k));
+             *          _activeRpc = rpcWrapperSupplier.get();
+             *
+             * eg: command = {AMQCommand@1498} "{#method<connection.start>(..)}}"
+             *      nextOutstandingRpc = {RpcContinuationRpcWrapper@1501}
+             *          continuation  = {AMQChannel$SimpleBlockingRpcContinuation@1313}
+             */
+            final RpcWrapper nextOutstandingRpc = nextOutstandingRpc();     // 获取等待获取报文的钩子：_activeRpc，并唤醒 _channelMutex 等待的想要注册钩子的线程
             // the outstanding RPC can be null when calling Channel#asyncRpc
             if(nextOutstandingRpc != null) {
-                nextOutstandingRpc.complete(command);
-                markRpcFinished();
+                nextOutstandingRpc.complete(command);                       /** =>> {@link RpcContinuationRpcWrapper#complete}  */
+                markRpcFinished();                                          // dispatcher.setUnlimited(false);
             }
         }
     }
@@ -209,7 +225,7 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
     }
 
     public void enqueueAsyncRpc(Method method, CompletableFuture<Command> future) {
-        doEnqueueRpc(() -> new CompletableFutureRpcWrapper(method, future));
+        doEnqueueRpc(() -> new CompletableFutureRpcWrapper(method, future));    //
     }
 
     private void doEnqueueRpc(Supplier<RpcWrapper> rpcWrapperSupplier) {
@@ -236,6 +252,12 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
             if (waitClearedInterruptStatus) {
                 Thread.currentThread().interrupt();
             }
+
+            /**
+             * {@link AMQChannel#enqueueRpc} =>> doEnqueueRpc(() -> new RpcContinuationRpcWrapper(k));
+             *                                   _activeRpc = new RpcContinuationRpcWrapper(k)
+             * {@link AMQChannel#enqueueAsyncRpc}
+             */
             _activeRpc = rpcWrapperSupplier.get();
         }
     }
@@ -344,12 +366,12 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
         }
     }
 
-    public void rpc(Method m, RpcContinuation k)
+    public void rpc(Method m, RpcContinuation k)        // new SimpleBlockingRpcContinuation(m);
         throws IOException
     {
         synchronized (_channelMutex) {
             ensureIsOpen();
-            quiescingRpc(m, k);
+            quiescingRpc(m, k);                         // =>>
         }
     }
 
@@ -357,8 +379,8 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
         throws IOException
     {
         synchronized (_channelMutex) {
-            enqueueRpc(k);
-            quiescingTransmit(m);
+            enqueueRpc(k);                              // 首先，注册钩子，等待接收，TCP 响应的报文 -> BlockingCell._value
+            quiescingTransmit(m);                       // 然后，发送客户端报文
         }
     }
 
@@ -435,13 +457,13 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
     public void transmit(AMQCommand c) throws IOException {
         synchronized (_channelMutex) {
             ensureIsOpen();
-            quiescingTransmit(c);
+            quiescingTransmit(c);         // =>>
         }
     }
 
     public void quiescingTransmit(Method m) throws IOException {
         synchronized (_channelMutex) {
-            quiescingTransmit(new AMQCommand(m));
+            quiescingTransmit(new AMQCommand(m));       // =>>
         }
     }
 
@@ -461,8 +483,10 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
                     ensureIsOpen();
                 }
             }
-            this._trafficListener.write(c);
-            c.transmit(this);
+            // c = {AMQCommand@1543} "{#method<connection.start-ok>(..
+            // c = {AMQCommand@1821} "{#method<basic.consume>(ticket=0, queue=my-queue, ...
+            this._trafficListener.write(c);     // 空
+            c.transmit(this);                   // =>> 往 SocketFrameHandler._outputStream 发送内容
         }
     }
 
@@ -478,6 +502,8 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
     }
 
     public static abstract class BlockingRpcContinuation<T> implements RpcContinuation {
+
+        // BlockingValueOrException extends BlockingCell
         public final BlockingValueOrException<T, ShutdownSignalException> _blocker =
             new BlockingValueOrException<T, ShutdownSignalException>();
 
@@ -491,9 +517,10 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
             this.request = request;
         }
 
+        /** {@link AMQConnection.MainLoop#run} -> 读取 Socket 输入流后写入 */
         @Override
-        public void handleCommand(AMQCommand command) {
-            _blocker.setValue(transformReply(command));
+        public void handleCommand(AMQCommand command) {             // _blocker = {BlockingValueOrException@1649}
+            _blocker.setValue(transformReply(command));             // =>> synchronized BlockingCell.set(..)
         }
 
         @Override
@@ -501,6 +528,7 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
             _blocker.setException(signal);
         }
 
+        // public static class SimpleBlockingRpcContinuation extends BlockingRpcContinuation<AMQCommand> {     //
         public T getReply() throws ShutdownSignalException
         {
             return _blocker.uninterruptibleGetValue();
@@ -509,7 +537,8 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
         public T getReply(int timeout)
             throws ShutdownSignalException, TimeoutException
         {
-            return _blocker.uninterruptibleGetValue(timeout);
+            // BlockingValueOrException extends BlockingCell
+            return _blocker.uninterruptibleGetValue(timeout);       // =>> synchronized BlockingCell.get(long)
         }
 
         @Override
@@ -576,9 +605,7 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
         }
     }
 
-    public static class SimpleBlockingRpcContinuation
-        extends BlockingRpcContinuation<AMQCommand>
-    {
+    public static class SimpleBlockingRpcContinuation extends BlockingRpcContinuation<AMQCommand> {     //
 
         public SimpleBlockingRpcContinuation() {
             super();
@@ -589,7 +616,7 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
         }
 
         @Override
-        public AMQCommand transformReply(AMQCommand command) {
+        public AMQCommand transformReply(AMQCommand command) {                                          //
             return command;
         }
     }
