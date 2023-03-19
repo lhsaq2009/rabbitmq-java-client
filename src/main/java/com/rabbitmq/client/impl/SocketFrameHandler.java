@@ -102,7 +102,7 @@ public class SocketFrameHandler implements FrameHandler {
     public void setTimeout(int timeoutMs)
         throws SocketException
     {
-        _socket.setSoTimeout(timeoutMs);
+        _socket.setSoTimeout(timeoutMs);            // 设置 socket 读取阻塞最多等待 timeoutMs
     }
 
     @Override
@@ -150,14 +150,14 @@ public class SocketFrameHandler implements FrameHandler {
      * @see #sendHeader()
      */
   public void sendHeader(int major, int minor, int revision) throws IOException {
-        synchronized (_outputStream) {
+        synchronized (_outputStream) {                              // socket 输出流
             _outputStream.write("AMQP".getBytes("US-ASCII"));
             _outputStream.write(0);
             _outputStream.write(major);
             _outputStream.write(minor);
             _outputStream.write(revision);
             try {
-                _outputStream.flush();
+                _outputStream.flush();                              // =>> 发送 header ( TCP Data: 414d515000000901 ) -> Broker
             } catch (SSLHandshakeException e) {
                 LOGGER.error("TLS connection failed: {}", e.getMessage());
                 throw e;
@@ -167,7 +167,7 @@ public class SocketFrameHandler implements FrameHandler {
 
     @Override
     public void sendHeader() throws IOException {
-        sendHeader(AMQP.PROTOCOL.MAJOR, AMQP.PROTOCOL.MINOR, AMQP.PROTOCOL.REVISION);
+        sendHeader(AMQP.PROTOCOL.MAJOR, AMQP.PROTOCOL.MINOR, AMQP.PROTOCOL.REVISION);   // =>>
         if (this._socket instanceof SSLSocket) {
             TlsUtils.logPeerCertificateInfo(((SSLSocket) this._socket).getSession());
         }
