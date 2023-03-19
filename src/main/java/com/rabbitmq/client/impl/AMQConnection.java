@@ -53,7 +53,7 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
     // the heartbeat one, so we use a value of 105% of the effective heartbeat timeout
     public static final double CHANNEL_SHUTDOWN_TIMEOUT_MULTIPLIER = 1.05;
 
-    private final ExecutorService consumerWorkServiceExecutor;
+    private final ExecutorService consumerWorkServiceExecutor;                  // 支持自定义：factory.newConnection(executor, addrs, "HaisenRMQ");
     private final ScheduledExecutorService heartbeatExecutor;
     private final ExecutorService shutdownExecutor;                             // TODO：自己传？？没有默认？
     private Thread mainLoopThread;
@@ -632,8 +632,8 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
         ensureIsOpen();
         ChannelManager cm = _channelManager;
         if (cm == null) return null;
-        Channel channel = cm.createChannel(this);
-        metricsCollector.newChannel(channel);
+        Channel channel = cm.createChannel(this);               // =>> createChannel
+        metricsCollector.newChannel(channel);                   // 空
         return channel;
     }
 
