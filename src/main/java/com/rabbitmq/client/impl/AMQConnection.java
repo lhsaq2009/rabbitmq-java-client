@@ -291,16 +291,16 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
      * If an exception is thrown, connection resources allocated can all be
      * garbage collected when the connection object is no longer referenced.
      */
-    public void start()
+    public void start()                                                 // Core
             throws IOException, TimeoutException {
-        initializeConsumerWorkService();
-        initializeHeartbeatSender();
-        this._running = true;
+        initializeConsumerWorkService();                                // =>> new ConsumerWorkService(..)
+        initializeHeartbeatSender();                                    // 心跳初始化，
+        this._running = true;                                           // 此时在后台页面，还没看到 Connection 连接哦
         // Make sure that the first thing we do is to send the header,
         // which should cause any socket errors to show up for us, rather
         // than risking them pop out in the MainLoop
-        AMQChannel.SimpleBlockingRpcContinuation connStartBlocker =
-            new AMQChannel.SimpleBlockingRpcContinuation();
+        AMQChannel.SimpleBlockingRpcContinuation connStartBlocker =     // TODO：???
+            new AMQChannel.SimpleBlockingRpcContinuation();             // AMQConnection.start()
         // We enqueue an RPC continuation here without sending an RPC
         // request, since the protocol specifies that after sending
         // the version negotiation header, the client (connection
@@ -370,8 +370,16 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
                                         : new AMQP.Connection.SecureOk.Builder().response(response).build();
 
                 try {
+                    //         method = {AMQImpl$Connection$StartOk@1485} "#method<connection.start-ok>(...
+                    // serverResponse = {AMQImpl$Connection$Tune@1550} "#method<connection.tune>(channel-max=2047, frame-max=131072, heartbeat=60)"
                     Method serverResponse = _channel0.rpc(method, handshakeTimeout/2).getMethod();
                     if (serverResponse instanceof AMQP.Connection.Tune) {
+                        /*
+                         * connTune = {AMQImpl$Connection$Tune@1339} "#method<connection.tune>(channel-max=2047, frame-max=131072, heartbeat=60)"
+                         *      channelMax = 2047
+                         *      frameMax = 131072（128KB）
+                         *      heartbeat = 60
+                         */
                         connTune = (AMQP.Connection.Tune) serverResponse;
                     } else {
                         challenge = ((AMQP.Connection.Secure) serverResponse).getChallenge();
@@ -400,6 +408,7 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
         }
 
         try {
+            // channelMax：非 0 合法值，则取最小，否则取最大
             int negotiatedChannelMax =
                 negotiateChannelMax(this.requestedChannelMax,
                                     connTune.getChannelMax());
@@ -429,13 +438,17 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
                         MAX_UNSIGNED_SHORT, heartbeat, negotiatedHeartbeat);
             }
 
-            setHeartbeat(heartbeat);
+            setHeartbeat(heartbeat);                                 //
 
+            // 最终确定的参数：new AMQCommand(m) = {AMQCommand@1707} "{#method<connection.tune-ok>(..
+            // 没有注册钩子
             _channel0.transmit(new AMQP.Connection.TuneOk.Builder()
                                 .channelMax(channelMax)
                                 .frameMax(frameMax)
                                 .heartbeat(heartbeat)
                               .build());
+            // m = {AMQImpl$Connection$Open@1690} "#method<connection.open>(virtual-host=/, capabilities=, insist=false)"
+            // 被丢弃的返回：_value = {AMQCommand@1693} "{#method<connection.open-ok>(known-hosts=), null, ""}"
             _channel0.exnWrappingRpc(new AMQP.Connection.Open.Builder()
                                       .virtualHost(_virtualHost)
                                     .build());
@@ -495,7 +508,7 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
      * Package private API, allows for easier testing.
      */
     public void startMainLoop() {
-        MainLoop loop = new MainLoop();
+        MainLoop loop = new MainLoop();                 //
         final String name = "AMQP Connection " + getHostAddress() + ":" + getPort();
         mainLoopThread = Environment.newThread(threadFactory, loop, name);
         mainLoopThread.start();
@@ -541,13 +554,12 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
      */
     public void setHeartbeat(int heartbeat) {
         try {
-            _heartbeatSender.setHeartbeat(heartbeat);
+            _heartbeatSender.setHeartbeat(heartbeat);               // =>> 创建心跳线程池，创建心跳周期定时任务
             _heartbeat = heartbeat;
 
             // Divide by four to make the maximum unwanted delay in
-            // sending a timeout be less than a quarter of the
-            // timeout setting.
-            _frameHandler.setTimeout(heartbeat * 1000 / 4);
+            // sending a timeout be less than a quarter of the timeout setting.
+            _frameHandler.setTimeout(heartbeat * 1000 / 4);         // 设置 socket 读阻塞最多等待多久
         } catch (SocketException se) {
             // should do more here?
         }
@@ -811,7 +823,7 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
         return this.mainLoopThread != null;
     }
 
-    private void notifyRecoveryCanBeginListeners() {
+    private void notifyRecoveryCanBeginListeners() {        // 在某些场景下，遍历列表
         ShutdownSignalException sse = this.getCloseReason();
         for(RecoveryCanBeginListener fn : Utility.copy(this.recoveryCanBeginListeners)) {
             fn.recoveryCanBegin(sse);
