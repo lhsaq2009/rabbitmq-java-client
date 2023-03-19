@@ -55,11 +55,13 @@ public class SocketFrameHandlerFactory extends AbstractFrameHandlerFactory {
         int portNumber = ConnectionFactory.portOrDefault(addr.getPort(), ssl);
         Socket socket = null;
         try {
-            socket = createSocket(connectionName);
+            // socket = {Socket@1393} "Socket[unconnected]"
+            socket = createSocket(connectionName);                          // =>> JDK 创建一个新的 Socket 对象
             configurator.configure(socket);
-            socket.connect(new InetSocketAddress(hostName, portNumber),
+            // java.net.InetSocketAddress
+            socket.connect(new InetSocketAddress(hostName, portNumber),     // =>> JDK TCP 三次握手 完成
                     connectionTimeout);
-            return create(socket);
+            return create(socket);                                          // new SocketFrameHandler(..);
         } catch (IOException ioe) {
             quietTrySocketClose(socket);
             throw ioe;
