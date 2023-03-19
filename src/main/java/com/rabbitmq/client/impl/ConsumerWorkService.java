@@ -31,11 +31,13 @@ final public class ConsumerWorkService {
     private final WorkPool<Channel, Runnable> workPool;
     private final int shutdownTimeout;
 
+    // executor 支持 factory.newConnection(executor, addrs, "HaisenRMQ");
+    // 缺省，则
     public ConsumerWorkService(ExecutorService executor, ThreadFactory threadFactory, int queueingTimeout, int shutdownTimeout) {
         this.privateExecutor = (executor == null);
         this.executor = (executor == null) ? Executors.newFixedThreadPool(DEFAULT_NUM_THREADS, threadFactory)
                                            : executor;
-        this.workPool = new WorkPool<>(queueingTimeout);
+        this.workPool = new WorkPool<>(queueingTimeout);        // =>>
         this.shutdownTimeout = shutdownTimeout;
     }
 
