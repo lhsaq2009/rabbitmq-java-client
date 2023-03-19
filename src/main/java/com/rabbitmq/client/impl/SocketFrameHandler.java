@@ -47,10 +47,10 @@ public class SocketFrameHandler implements FrameHandler {
     private final ExecutorService _shutdownExecutor;
 
     /** Socket's inputstream - data from the broker - synchronized on */
-    private final DataInputStream _inputStream;
+    private final DataInputStream _inputStream;         // socket.getInputStream()
 
     /** Socket's outputstream - data to the broker - synchronized on */
-    private final DataOutputStream _outputStream;
+    private final DataOutputStream _outputStream;       // socket.getOutputStream()
 
     /** Time to linger before closing the socket forcefully. */
     public static final int SOCKET_CLOSING_TIMEOUT = 1;
@@ -67,7 +67,7 @@ public class SocketFrameHandler implements FrameHandler {
      */
     public SocketFrameHandler(Socket socket, ExecutorService shutdownExecutor) throws IOException {
         _socket = socket;
-        _shutdownExecutor = shutdownExecutor;
+        _shutdownExecutor = shutdownExecutor;       // null
 
         _inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
         _outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
@@ -180,7 +180,7 @@ public class SocketFrameHandler implements FrameHandler {
 
     @Override
     public Frame readFrame() throws IOException {
-        synchronized (_inputStream) {
+        synchronized (_inputStream) {                               // Socket 输入流：Broker -> Custmers
             return Frame.readFrom(_inputStream);
         }
     }
