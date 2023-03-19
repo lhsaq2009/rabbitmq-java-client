@@ -157,8 +157,8 @@ public class AutorecoveringConnection implements RecoverableConnection, NetworkC
      * @see com.rabbitmq.client.ConnectionFactory#newConnection(java.util.concurrent.ExecutorService)
      */
     public void init() throws IOException, TimeoutException {
-        this.delegate = this.cf.newConnection();
-        this.addAutomaticRecoveryListener(delegate);
+        this.delegate = this.cf.newConnection();                // =>> 建立连接
+        this.addAutomaticRecoveryListener(delegate);            // 监听失败自动恢复重连
     }
 
     /**
