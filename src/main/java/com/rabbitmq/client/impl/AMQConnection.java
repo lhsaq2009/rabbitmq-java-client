@@ -55,12 +55,13 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
 
     private final ExecutorService consumerWorkServiceExecutor;
     private final ScheduledExecutorService heartbeatExecutor;
-    private final ExecutorService shutdownExecutor;
+    private final ExecutorService shutdownExecutor;                             // TODO：自己传？？没有默认？
     private Thread mainLoopThread;
-    private ThreadFactory threadFactory = Executors.defaultThreadFactory();
+    private ThreadFactory threadFactory = Executors.defaultThreadFactory();     // ??? 默认线程工厂
     private String id;
 
-    private final List<RecoveryCanBeginListener> recoveryCanBeginListeners =
+    /** {@link AMQConnection#notifyRecoveryCanBeginListeners() } */
+    private final List<RecoveryCanBeginListener> recoveryCanBeginListeners =    //
             Collections.synchronizedList(new ArrayList<RecoveryCanBeginListener>());
 
     private final ErrorOnWriteListener errorOnWriteListener;
@@ -102,15 +103,15 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
         new Version(AMQP.PROTOCOL.MAJOR, AMQP.PROTOCOL.MINOR);
 
     /** The special channel 0 (<i>not</i> managed by the <code><b>_channelManager</b></code>) */
-    private final AMQChannel _channel0;
+    private final AMQChannel _channel0;                         // TCP 创建完的第一个 RMQ 默认信道，专门用于与 Broker 交互的
 
     protected ConsumerWorkService _workService = null;
 
     /** Frame source/sink */
-    private final FrameHandler _frameHandler;
+    private final FrameHandler _frameHandler;                   //
 
     /** Flag controlling the main driver loop's termination */
-    private volatile boolean _running = false;
+    private volatile boolean _running = false;                  //
 
     /** Handler for (uncaught) exceptions that crop up in the {@link MainLoop}. */
     private final ExceptionHandler _exceptionHandler;
@@ -127,20 +128,20 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
     private volatile boolean _inConnectionNegotiation;
 
     /** Manages heart-beat sending for this connection */
-    private HeartbeatSender _heartbeatSender;
+    private HeartbeatSender _heartbeatSender;                           // new HeartbeatSender(..)
 
     private final String _virtualHost;
     private final Map<String, Object> _clientProperties;
     private final SaslConfig saslConfig;
     private final int requestedHeartbeat;
     private final int requestedChannelMax;
-    private final int requestedFrameMax;
+    private final int requestedFrameMax;                                // 默认：131072（128KB），请求帧（frame）的最大大小
     private final int handshakeTimeout;
     private final int shutdownTimeout;
     private final CredentialsProvider credentialsProvider;
     private final Collection<BlockedListener> blockedListeners = new CopyOnWriteArrayList<BlockedListener>();
     protected final MetricsCollector metricsCollector;
-    private final int channelRpcTimeout;
+    private final int channelRpcTimeout;                        //
     private final boolean channelShouldCheckRpcResponseType;
     private final TrafficListener trafficListener;
     private final CredentialsRefreshService credentialsRefreshService;
@@ -148,11 +149,11 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
     /* State modified after start - all volatile */
 
     /** Maximum frame length, or zero if no limit is set */
-    private volatile int _frameMax = 0;
+    private volatile int _frameMax = 0;                         // 默认：131072（128KB），请求帧（frame）的最大大小
     /** Count of socket-timeouts that have happened without any incoming frames */
-    private volatile int _missedHeartbeats = 0;
+    private volatile int _missedHeartbeats = 0;                 //
     /** Currently-configured heart-beat interval, in seconds. 0 meaning none. */
-    private volatile int _heartbeat = 0;
+    private volatile int _heartbeat = 0;                        // 心跳
     /** Object that manages a set of channels */
     private volatile ChannelManager _channelManager;
     /** Saved server properties field from connection.start */
@@ -230,7 +231,7 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
         this.handshakeTimeout = params.getHandshakeTimeout();
         this.shutdownTimeout = params.getShutdownTimeout();
         this.saslConfig = params.getSaslConfig();
-        this.consumerWorkServiceExecutor = params.getConsumerWorkServiceExecutor();
+        this.consumerWorkServiceExecutor = params.getConsumerWorkServiceExecutor();     // 支持自定义入参：factory.newConnection(executor, addrs, "HaisenRMQ");
         this.heartbeatExecutor = params.getHeartbeatExecutor();
         this.shutdownExecutor = params.getShutdownExecutor();
         this.threadFactory = params.getThreadFactory();
@@ -244,7 +245,7 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
 
         this.credentialsRefreshService = params.getCredentialsRefreshService();
 
-        this._channel0 = createChannel0();
+        this._channel0 = createChannel0();    //
 
         this._channelManager = null;
 
@@ -259,8 +260,9 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
         this.workPoolTimeout = params.getWorkPoolTimeout();
     }
 
-    AMQChannel createChannel0() {
+    AMQChannel createChannel0() {               //
         return new AMQChannel(this, 0) {
+            // c = {AMQCommand@1494} "{#method<connection.start>(version-major=0, version-minor=9, ..."
             @Override public boolean processAsync(Command c) throws IOException {
                 return getConnection().processControlCommand(c);
             }
@@ -306,24 +308,27 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
         // the version negotiation header, the client (connection
         // initiator) is to wait for a connection.start method to
         // arrive.
-        _channel0.enqueueRpc(connStartBlocker);
+        _channel0.enqueueRpc(connStartBlocker);                         // 这里没发送报文，下面 sendHeader() 发送了报文
         try {
             // The following two lines are akin to AMQChannel's
             // transmit() method for this pseudo-RPC.
             _frameHandler.setTimeout(handshakeTimeout);
-            _frameHandler.sendHeader();
+            _frameHandler.sendHeader();                                 // 发送报文：header ( TCP Data: 414d515000000901 ) -> Broker
         } catch (IOException ioe) {
             _frameHandler.close();
             throw ioe;
         }
 
-        this._frameHandler.initialize(this);
+        // this = {RecoveryAwareAMQConnection@1289} "amqp://admin@127.0.0.1:3372/"
+        // 接收处理到上面 _frameHandler.sendHeader()，Broker 响应的报文
+        this._frameHandler.initialize(this);                            /** {@link AMQConnection.MainLoop#run} */
 
         AMQP.Connection.Start connStart;
         AMQP.Connection.Tune connTune = null;
         try {
-            connStart =
-                    (AMQP.Connection.Start) connStartBlocker.getReply(handshakeTimeout/2).getMethod();
+            // connStart = {AMQImpl$Connection$Start@1501} "#method<connection.start>(..., server-properties={ ... }, ...)"
+            // 异步阻塞：等待 MainLoop#run() 处理在 sendHeader() 后的 RMQ 响应
+            connStart = (AMQP.Connection.Start) connStartBlocker.getReply(handshakeTimeout/2).getMethod();
 
             _serverProperties = Collections.unmodifiableMap(connStart.getServerProperties());
 
@@ -511,7 +516,7 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
         MainLoop loop = new MainLoop();                 //
         final String name = "AMQP Connection " + getHostAddress() + ":" + getPort();
         mainLoopThread = Environment.newThread(threadFactory, loop, name);
-        mainLoopThread.start();
+        mainLoopThread.start();                         //
     }
 
     /**
@@ -623,7 +628,7 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
 
     /** Public API - {@inheritDoc} */
     @Override
-    public Channel createChannel() throws IOException {
+    public Channel createChannel() throws IOException {         //
         ensureIsOpen();
         ChannelManager cm = _channelManager;
         if (cm == null) return null;
@@ -727,10 +732,10 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
             if (frame.type == AMQP.FRAME_HEARTBEAT) {
                 // Ignore it: we've already just reset the heartbeat counter.
             } else {
-                if (frame.channel == 0) { // the special channel
-                    _channel0.handleFrame(frame);
+                if (frame.channel == 0) {               // the special channel，不在 _channelManager 管理之内
+                    _channel0.handleFrame(frame);       // =>>
                 } else {
-                    if (isOpen()) {
+                    if (isOpen()) {                     // basicConsume
                         // If we're still _running, but not isOpen(), then we
                         // must be quiescing, which means any inbound frames
                         // for non-zero channels (and any inbound commands on
