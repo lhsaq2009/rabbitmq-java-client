@@ -71,7 +71,7 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
     protected volatile boolean _blockContent = false;
 
     /** Timeout for RPC calls */
-    protected final int _rpcTimeout;
+    protected final int _rpcTimeout;                                    //
 
     private final boolean _checkRpcResponseType;
 
@@ -82,7 +82,7 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
      * @param connection the underlying connection for this channel
      * @param channelNumber the allocated reference number for this channel
      */
-    public AMQChannel(AMQConnection connection, int channelNumber) {
+    public AMQChannel(AMQConnection connection, int channelNumber) {    //
         this._connection = connection;
         this._channelNumber = channelNumber;
         if(connection.getChannelRpcTimeout() < 0) {
@@ -205,7 +205,7 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
 
     public void enqueueRpc(RpcContinuation k)
     {
-        doEnqueueRpc(() -> new RpcContinuationRpcWrapper(k));
+        doEnqueueRpc(() -> new RpcContinuationRpcWrapper(k));                   // =>> RPC 入队
     }
 
     public void enqueueAsyncRpc(Method method, CompletableFuture<Command> future) {
@@ -215,9 +215,19 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
     private void doEnqueueRpc(Supplier<RpcWrapper> rpcWrapperSupplier) {
         synchronized (_channelMutex) {
             boolean waitClearedInterruptStatus = false;
-            while (_activeRpc != null) {
+            while (_activeRpc != null) {            //
                 try {
-                    _channelMutex.wait();
+                    /**
+                     * 何时唤醒：
+                     * =>> {@link AMQChannel#handleCompleteInboundCommand}
+                     *     final RpcWrapper nextOutstandingRpc = nextOutstandingRpc();
+                     *     =>> {@link AMQChannel#nextOutstandingRpc}
+                     *         synchronized (_channelMutex) {
+                     *            RpcWrapper result = _activeRpc;
+                     *            _activeRpc = null;               //
+                     *            _channelMutex.notifyAll();       // 唤醒
+                     */
+                    _channelMutex.wait();                                   // 存在正在进行的 Rpc 请求，等待被唤醒 ...
                 } catch (InterruptedException e) { //NOSONAR
                     waitClearedInterruptStatus = true;
                     // No Sonar: we re-interrupt the thread later
