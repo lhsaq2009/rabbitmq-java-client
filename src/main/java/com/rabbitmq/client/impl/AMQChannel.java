@@ -144,7 +144,7 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
         throws IOException
     {
         try {
-            return privateRpc(m);
+            return privateRpc(m);           // =>>
         } catch (AlreadyClosedException ace) {
             // Do not wrap it since it means that connection/channel
             // was closed in some action in the past
@@ -304,14 +304,14 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
 
     public AMQCommand rpc(Method m, int timeout)
             throws IOException, ShutdownSignalException, TimeoutException {
-        return privateRpc(m, timeout);
+        return privateRpc(m, timeout);          // =>>
     }
 
     private AMQCommand privateRpc(Method m)
         throws IOException, ShutdownSignalException
     {
         SimpleBlockingRpcContinuation k = new SimpleBlockingRpcContinuation(m);
-        rpc(m, k);
+        rpc(m, k);          // =>>
         // At this point, the request method has been sent, and we
         // should wait for the reply to arrive.
         //
@@ -356,10 +356,10 @@ public abstract class AMQChannel extends ShutdownNotifierComponent {
     private AMQCommand privateRpc(Method m, int timeout)
             throws IOException, ShutdownSignalException, TimeoutException {
         SimpleBlockingRpcContinuation k = new SimpleBlockingRpcContinuation(m);
-        rpc(m, k);
+        rpc(m, k);                          // =>> 先注册处理钩子，再发 TCP 报文给 Broker，然后钩子阻塞等获取 Broker 响应
 
         try {
-            return k.getReply(timeout);
+            return k.getReply(timeout);     // =>>
         } catch (TimeoutException e) {
             cleanRpcChannelState();
             throw e;
