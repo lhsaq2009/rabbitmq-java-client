@@ -105,7 +105,13 @@ public class AMQConnection extends ShutdownNotifierComponent implements Connecti
     /** The special channel 0 (<i>not</i> managed by the <code><b>_channelManager</b></code>) */
     private final AMQChannel _channel0;                         // TCP 创建完的第一个 RMQ 默认信道，专门用于与 Broker 交互的
 
-    protected ConsumerWorkService _workService = null;
+    /**
+     * 何时初始化：
+     * ==> {@link com.rabbitmq.client.impl.AMQConnection#start}
+     *     =>> {@link #initializeConsumerWorkService}
+     *         this._workService  = new ConsumerWorkService(..);
+     */
+    protected ConsumerWorkService _workService = null;          // factory.newConnection(..) -> initializeConsumerWorkService() 初始化完成
 
     /** Frame source/sink */
     private final FrameHandler _frameHandler;                   //
