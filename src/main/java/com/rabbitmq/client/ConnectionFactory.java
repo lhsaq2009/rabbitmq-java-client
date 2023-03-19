@@ -128,7 +128,7 @@ public class ConnectionFactory implements Cloneable {
     private ExceptionHandler exceptionHandler       = new DefaultExceptionHandler();
     private CredentialsProvider credentialsProvider = new DefaultCredentialsProvider(DEFAULT_USER, DEFAULT_PASS);
 
-    private boolean automaticRecovery               = true;
+    private boolean automaticRecovery               = true;         // 用户代码可配置：factory.setAutomaticRecoveryEnabled(false);
     private boolean topologyRecovery                = true;
     private ExecutorService topologyRecoveryExecutor;
     
@@ -1129,7 +1129,7 @@ public class ConnectionFactory implements Cloneable {
      * @see <a href="https://www.rabbitmq.com/api-guide.html#recovery">Automatic Recovery</a>
      */
     public Connection newConnection(ExecutorService executor, List<Address> addrs) throws IOException, TimeoutException {
-        return newConnection(executor, addrs, null);
+        return newConnection(executor, addrs, null);        // =>> newConnection
     }
 
     /**
@@ -1200,8 +1200,8 @@ public class ConnectionFactory implements Cloneable {
             this.metricsCollector = new NoOpMetricsCollector();
         }
         // make sure we respect the provided thread factory
-        FrameHandlerFactory fhFactory = createFrameHandlerFactory();
-        ConnectionParams params = params(executor);
+        FrameHandlerFactory fhFactory = createFrameHandlerFactory();        // =>> new SocketFrameHandlerFactory(..)
+        ConnectionParams params = params(executor);                         // ConnectionParams
         // set client-provided via a client property
         if (clientProvidedName != null) {
             Map<String, Object> properties = new HashMap<String, Object>(params.getClientProperties());
@@ -1222,8 +1222,10 @@ public class ConnectionFactory implements Cloneable {
             Exception lastException = null;
             for (Address addr : addrs) {
                 try {
-                    FrameHandler handler = fhFactory.create(addr, clientProvidedName);
-                    AMQConnection conn = createConnection(params, handler, metricsCollector);
+                    // fhFactory = {SocketFrameHandlerFactory@1206}
+                    //   handler = {SocketFrameHandler@1405}
+                    FrameHandler handler = fhFactory.create(addr, clientProvidedName);          // TCP 建立链接
+                    AMQConnection conn = createConnection(params, handler, metricsCollector);   // new AMQConnection(..)
                     conn.start();
                     this.metricsCollector.newConnection(conn);
                     return conn;
