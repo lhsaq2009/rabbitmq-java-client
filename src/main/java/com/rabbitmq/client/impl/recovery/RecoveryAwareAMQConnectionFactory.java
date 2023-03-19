@@ -31,7 +31,10 @@ public class RecoveryAwareAMQConnectionFactory {
     private final ConnectionParams params;
     private final FrameHandlerFactory factory;
     private final AddressResolver addressResolver;
-    private final MetricsCollector metricsCollector;
+
+    // MetricsCollector 接口定义了一组方法，用于获取 RabbitMQ 服务器的各种性能指标和统计数据，例如队列长度、消费者数量、消息速率、内存使用率等
+    // 提供了一些默认的 MetricsCollector 实现，PrometheusMetricsCollector，GraphiteMetricsCollector
+    private final MetricsCollector metricsCollector;            // 统计数据
 
     public RecoveryAwareAMQConnectionFactory(ConnectionParams params, FrameHandlerFactory factory, List<Address> addrs) {
         this(params, factory, new ListAddressResolver(addrs), new NoOpMetricsCollector());
