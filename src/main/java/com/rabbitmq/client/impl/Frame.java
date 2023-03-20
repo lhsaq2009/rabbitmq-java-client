@@ -88,7 +88,7 @@ public class Frame {
         int channel;
 
         try {
-            type = is.readUnsignedByte();
+            type = is.readUnsignedByte();                   // 读一个字节
         } catch (SocketTimeoutException ste) {
             // System.err.println("Timed out waiting for a frame.");
             return null; // failed
@@ -107,13 +107,13 @@ public class Frame {
             protocolVersionMismatch(is);
         }
 
-        channel = is.readUnsignedShort();
-        int payloadSize = is.readInt();
+        channel = is.readUnsignedShort();                   // 读两个字节
+        int payloadSize = is.readInt();                     // 读 4 个字节，获取正文数据的字节数
         byte[] payload = new byte[payloadSize];
-        is.readFully(payload);
+        is.readFully(payload);                              // 读全部正文数据
 
         int frameEndMarker = is.readUnsignedByte();
-        if (frameEndMarker != AMQP.FRAME_END) {
+        if (frameEndMarker != AMQP.FRAME_END) {             // 读尾字节
             throw new MalformedFrameException("Bad frame end marker: " + frameEndMarker);
         }
 

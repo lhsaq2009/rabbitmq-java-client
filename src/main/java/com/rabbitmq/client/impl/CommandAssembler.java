@@ -89,7 +89,7 @@ final class CommandAssembler {
 
     private void consumeMethodFrame(Frame f) throws IOException {
         if (f.type == AMQP.FRAME_METHOD) {
-            this.method = AMQImpl.readMethodFrom(f.getInputStream());
+            this.method = AMQImpl.readMethodFrom(f.getInputStream());       // =>>
             this.state = this.method.hasContent() ? CAState.EXPECTING_CONTENT_HEADER : CAState.COMPLETE;
         } else {
             throw new UnexpectedFrameError(f, AMQP.FRAME_METHOD);
@@ -154,7 +154,7 @@ final class CommandAssembler {
     public synchronized boolean handleFrame(Frame f) throws IOException
     {
         switch (this.state) {
-          case EXPECTING_METHOD:          consumeMethodFrame(f); break;
+          case EXPECTING_METHOD:          consumeMethodFrame(f); break;     // =>>
           case EXPECTING_CONTENT_HEADER:  consumeHeaderFrame(f); break;
           case EXPECTING_CONTENT_BODY:    consumeBodyFrame(f);   break;
 

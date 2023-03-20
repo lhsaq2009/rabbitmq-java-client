@@ -70,6 +70,7 @@ public class DnsRecordIpAddressResolver implements AddressResolver {
         String hostName = address.getHost();
         int portNumber = ConnectionFactory.portOrDefault(address.getPort(), ssl);
 
+        // 解析得到对应的 IP，可能同一个域名有多个 IP
         InetAddress[] inetAddresses = resolveIpAddresses(hostName);
 
         List<Address> addresses = new ArrayList<Address>();

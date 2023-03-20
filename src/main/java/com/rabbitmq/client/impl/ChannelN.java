@@ -61,9 +61,9 @@ public class ChannelN extends AMQChannel implements com.rabbitmq.client.Channel 
 
     /* All listeners collections are in CopyOnWriteArrayList objects */
     /** The ReturnListener collection. */
-    private final Collection<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();
+    private final Collection<ReturnListener> returnListeners = new CopyOnWriteArrayList<ReturnListener>();      //
     /** The ConfirmListener collection. */
-    private final Collection<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();
+    private final Collection<ConfirmListener> confirmListeners = new CopyOnWriteArrayList<ConfirmListener>();   //
 
     /** Sequence number of next published message requiring confirmation.*/
     private long nextPublishSeqNo = 0L;
@@ -672,7 +672,7 @@ public class ChannelN extends AMQChannel implements com.rabbitmq.client.Channel 
                              BasicProperties props, byte[] body)
         throws IOException
     {
-        basicPublish(exchange, routingKey, false, props, body);
+        basicPublish(exchange, routingKey, false, props, body);     // =>>
     }
 
     /** Public API - {@inheritDoc} */
@@ -682,7 +682,7 @@ public class ChannelN extends AMQChannel implements com.rabbitmq.client.Channel 
                              BasicProperties props, byte[] body)
         throws IOException
     {
-        basicPublish(exchange, routingKey, mandatory, false, props, body);
+        basicPublish(exchange, routingKey, mandatory, false, props, body);  // =>>
     }
 
     /** Public API - {@inheritDoc} */
@@ -707,7 +707,7 @@ public class ChannelN extends AMQChannel implements com.rabbitmq.client.Channel 
                 .immediate(immediate)
                 .build(), props, body);
         try {
-            transmit(command);
+            transmit(command);        // =>>
         } catch (IOException e) {
             metricsCollector.basicPublishFailure(this, e);
             throw e;

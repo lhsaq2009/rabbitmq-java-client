@@ -111,8 +111,8 @@ public class ConnectionFactory implements Cloneable {
     private int requestedChannelMax               = DEFAULT_CHANNEL_MAX;
     private int requestedFrameMax                 = DEFAULT_FRAME_MAX;
     private int requestedHeartbeat                = DEFAULT_HEARTBEAT;
-    private int connectionTimeout                 = DEFAULT_CONNECTION_TIMEOUT;
-    private int handshakeTimeout                  = DEFAULT_HANDSHAKE_TIMEOUT;
+    private int connectionTimeout                 = DEFAULT_CONNECTION_TIMEOUT;     // factory.setConnectionTimeout(5000)，TCP connection timeout: 60s
+    private int handshakeTimeout                  = DEFAULT_HANDSHAKE_TIMEOUT;      // 默认：10s
     private int shutdownTimeout                   = DEFAULT_SHUTDOWN_TIMEOUT;
     private Map<String, Object> _clientProperties = AMQConnection.defaultClientProperties();
     private SocketFactory socketFactory           = null;
@@ -546,7 +546,7 @@ public class ConnectionFactory implements Cloneable {
      * @param timeout the AMQP0-9-1 protocol handshake timeout, in milliseconds
      */
     public void setHandshakeTimeout(int timeout) {
-        if(timeout < 0) {
+        if (timeout < 0) {
             throw new IllegalArgumentException("handshake timeout cannot be negative");
         }
         this.handshakeTimeout = timeout;

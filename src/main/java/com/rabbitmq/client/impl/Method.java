@@ -71,7 +71,7 @@ public abstract class Method implements com.rabbitmq.client.Method {
 
     @Override public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("#method<").append(protocolMethodName()).append(">");
+        sb.append("#method<").append(protocolMethodName()).append(">");         //
         this.appendArgumentDebugStringTo(sb);
         return sb.toString();
     }

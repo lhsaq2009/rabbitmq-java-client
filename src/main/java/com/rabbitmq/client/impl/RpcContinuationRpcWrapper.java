@@ -33,9 +33,16 @@ public class RpcContinuationRpcWrapper implements RpcWrapper {
         return continuation.canHandleReply(command);
     }
 
+    /**
+     * doEnqueueRpc(() -> new RpcContinuationRpcWrapper(k));
+     *     continuation <= k
+     *
+     * ==> {@link AMQChannel#handleCompleteInboundCommand}
+     *     nextOutstandingRpc.complete(command);
+     */
     @Override
     public void complete(AMQCommand command) {
-        continuation.handleCommand(command);
+        continuation.handleCommand(command);            // =>> k
     }
 
     @Override

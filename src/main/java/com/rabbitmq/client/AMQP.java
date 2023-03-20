@@ -39,10 +39,12 @@ public interface AMQP {
         public static final int PORT = 5672;
     }
 
-    public static final int FRAME_METHOD = 1;
-    public static final int FRAME_HEADER = 2;
-    public static final int FRAME_BODY = 3;
-    public static final int FRAME_HEARTBEAT = 8;
+    public static final int FRAME_METHOD = 1;           //
+    public static final int FRAME_HEADER = 2;           //
+    public static final int FRAME_BODY   = 3;           //
+
+    public static final int FRAME_HEARTBEAT = 8;        // 心跳
+
     public static final int FRAME_MIN_SIZE = 4096;
     public static final int FRAME_END = 206;
     public static final int REPLY_SUCCESS = 200;

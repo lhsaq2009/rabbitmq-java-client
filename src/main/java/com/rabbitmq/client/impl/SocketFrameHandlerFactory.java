@@ -76,7 +76,7 @@ public class SocketFrameHandlerFactory extends AbstractFrameHandlerFactory {
             if (ssl) {
                 return sslContextFactory.create(connectionName).getSocketFactory().createSocket();
             } else {
-                return SocketFactory.getDefault().createSocket();
+                return SocketFactory.getDefault().createSocket();   // =>> JDK 创建 Socket 对象
             }
         }
     }
