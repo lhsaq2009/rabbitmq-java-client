@@ -79,11 +79,11 @@ public class ChannelN extends AMQChannel implements com.rabbitmq.client.Channel 
 
     /** Set of currently unconfirmed messages (i.e. messages that have
      *  not been ack'd or nack'd by the server yet. */
-    private final SortedSet<Long> unconfirmedSet =
+    private final SortedSet<Long> unconfirmedSet =                  // 记录已发送未反馈的消息序列号
             Collections.synchronizedSortedSet(new TreeSet<Long>());
 
     /** Whether any nacks have been received since the last waitForConfirms(). */
-    private volatile boolean onlyAcksReceived = true;
+    private volatile boolean onlyAcksReceived = true;               // 记录是否发送的消息全部被 Ack，任一 Nack 则为 false
 
     protected final MetricsCollector metricsCollector;
 
@@ -692,8 +692,8 @@ public class ChannelN extends AMQChannel implements com.rabbitmq.client.Channel 
                              BasicProperties props, byte[] body)
         throws IOException
     {
-        if (nextPublishSeqNo > 0) {
-            unconfirmedSet.add(getNextPublishSeqNo());
+        if (nextPublishSeqNo > 0) {                             // channel.confirmSelect() 开启发布确认模式后，才可用 0 -> 1
+            unconfirmedSet.add(getNextPublishSeqNo());          // 本地缓存尚未收到 Broker 反馈的消息序号
             nextPublishSeqNo++;
         }
         if (props == null) {
@@ -1602,9 +1602,9 @@ public class ChannelN extends AMQChannel implements com.rabbitmq.client.Channel 
             unconfirmedSet.remove(seqNo);
         }
         synchronized (unconfirmedSet) {
-            onlyAcksReceived = onlyAcksReceived && !nack;
-            if (unconfirmedSet.isEmpty())
-                unconfirmedSet.notifyAll();
+            onlyAcksReceived = onlyAcksReceived && !nack;       // 记录是否发送的消息全部被 Ack，任一 Nack 则为 false
+            if (unconfirmedSet.isEmpty())                       // 消息全部收到反馈了
+                unconfirmedSet.notifyAll();                     // 唤醒阻塞者：channel.waitForConfirms() -> unconfirmedSet.wait(..);
         }
     }
 
